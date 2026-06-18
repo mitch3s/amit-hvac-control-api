@@ -4,20 +4,21 @@ Library for controlling Amit HVAC solution using the web server as an interface.
 
 Only works with the specifically developed machine logic runtime application for the following hardware:
 
-* AMiNi4W2 PLC
-* AMR-OP70RHC/04 Wall-mounted controller
+- AMiNi4W2 PLC
+- AMR-OP70RHC/04 Wall-mounted controller
 
 ## Run
 
 Run the main file with arguments to test the connection nd retrieve all data.
+
 ```bash
-python ./src/amit_hvac_control/__main__.py --host=<internal_network_address> --username=<username> --password=<password>
+uv run ./src/amit_hvac_control/__main__.py --host=<internal_network_address> --username=<username> --password=<password>
 ```
 
 ## Build
 
 ```bash
-python -m build
+uv build
 ```
 
 ## Release
