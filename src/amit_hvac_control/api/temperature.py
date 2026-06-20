@@ -1,7 +1,7 @@
-import re
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
+from amit_hvac_control.api.parsing import require_class, require_match
 from amit_hvac_control.api.utils import get_multipart_data
 from amit_hvac_control.models import HeatingMode, Season
 
@@ -71,8 +71,8 @@ class TemperatureApi:
     def _extract_temperature_data(self, content: bytes):
         soup = BeautifulSoup(content, "html.parser")
 
-        temp_act_el = soup.find(class_="AWNumericView1")
-        temp_set_el = soup.find(class_="AWNumericView2")
+        temp_act_el = require_class(soup, "AWNumericView1", "actual temperature")
+        temp_set_el = require_class(soup, "AWNumericView2", "set temperature")
 
         temp_act = float(temp_act_el.text)
         temp_set = float(temp_set_el.text)
@@ -83,7 +83,7 @@ class TemperatureApi:
         return TemperatureResult(temp_act, temp_set, heating_mode)
 
     def _get_heating_mode(self, contents: str):
-        match = re.search(r"AWSCaseImage1v=(\d)", contents)
+        match = require_match(r"AWSCaseImage1v=(\d)", contents, "heating mode")
         value = match.group(1)
         value_number = int(value)
         return HeatingMode(value_number)
