@@ -3,6 +3,7 @@ import re
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
+from amit_hvac_control.api.parsing import require_class, require_selector
 from amit_hvac_control.models import HeatingMode, Season, VentilationMode
 
 MAIN_URL = "/pages/index.hta"
@@ -50,9 +51,11 @@ class StatusApi:
     def _extract_overview_details(self, content: str):
         soup = BeautifulSoup(content, "html.parser")
 
-        room_temp_el = soup.find(class_="AWNumericView1")
-        air_room_temp_el = soup.find(class_="AWNumericView3")
-        [co2_el] = soup.select(".AWNumericView2,.AWNumericView2-alert-max")
+        room_temp_el = require_class(soup, "AWNumericView1", "room temperature")
+        air_room_temp_el = require_class(soup, "AWNumericView3", "air temperature")
+        co2_el = require_selector(
+            soup, ".AWNumericView2,.AWNumericView2-alert-max", "CO2 value"
+        )
 
         labels = self._get_aws_case_labels(content)
 

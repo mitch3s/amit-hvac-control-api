@@ -1,6 +1,11 @@
 import re
 from aiohttp import ClientSession
 
+from amit_hvac_control.api.parsing import (
+    require_class,
+    require_match,
+    require_selector,
+)
 from amit_hvac_control.api.utils import get_multipart_data
 from amit_hvac_control.models import VentilationMode
 from bs4 import BeautifulSoup
@@ -100,16 +105,24 @@ class VentilationApi:
     def _extract_data(self, content: bytes):
         soup = BeautifulSoup(content, "html.parser")
 
-        [co2_current_el] = soup.select(".AWNumericView1,.AWNumericView1-alert-max")
+        co2_current_el = require_selector(
+            soup, ".AWNumericView1,.AWNumericView1-alert-max", "current CO2 value"
+        )
         co2_current = float(co2_current_el.text)
 
-        air_temp_current_el = soup.find(class_="AWNumericView2")
+        air_temp_current_el = require_class(
+            soup, "AWNumericView2", "current air temperature"
+        )
         air_temp_current = float(air_temp_current_el.text)
 
-        [air_temp_setpoint_input_el] = soup.select("input.AWNumericEditButton1")
+        air_temp_setpoint_input_el = require_selector(
+            soup, "input.AWNumericEditButton1", "air temperature setpoint"
+        )
         air_temp_setpoint = float(air_temp_setpoint_input_el.attrs["value"])
 
-        [co2_setpoint_input_el] = soup.select("input.AWNumericEditButton2")
+        co2_setpoint_input_el = require_selector(
+            soup, "input.AWNumericEditButton2", "CO2 setpoint"
+        )
         co2_setpoint = float(co2_setpoint_input_el.attrs["value"])
 
         html = str(soup)
@@ -128,13 +141,13 @@ class VentilationApi:
         )
 
     def _get_ventilation_mode(self, contents: str):
-        match = re.search(r"AWSCaseLabel1v=(\d)", contents)
+        match = require_match(r"AWSCaseLabel1v=(\d)", contents, "ventilation mode")
         value = match.group(1)
         value_number = int(value)
         return VentilationMode(value_number)
 
     def _get_heating_level(self, contents: str):
-        match = re.search(r"AWProgressBar1v=(\d+.\d+)", contents)
+        match = require_match(r"AWProgressBar1v=(\d+.\d+)", contents, "heating level")
         value = match.group(1)
         return float(value)
 
