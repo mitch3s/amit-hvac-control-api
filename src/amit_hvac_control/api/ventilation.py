@@ -147,14 +147,14 @@ class VentilationApi:
             results[int(key)] = bit_and > 0
 
         ventilation_speed: VentilationMode = VentilationMode.OFF
-        if results[2]:
+        if results.get(2, False):
             ventilation_speed = VentilationMode.LOW
-        elif results[3]:
+        elif results.get(3, False):
             ventilation_speed = VentilationMode.MEDIUM
-        elif results[4]:
+        elif results.get(4, False):
             ventilation_speed = VentilationMode.HIGH
 
         return VentilationBitResults(
-            results[1],
+            results.get(1, False),
             ventilation_speed
         )
