@@ -52,7 +52,7 @@ class TemperatureApi:
         post_data = {**save_val}
         return self._async_save(post_data)
 
-    def async_set_heading_mode(self, heating_mode: HeatingMode):
+    def async_set_heating_mode(self, heating_mode: HeatingMode):
         save_val = heating_mode.get_button()
         post_data = {
             save_val: "",
