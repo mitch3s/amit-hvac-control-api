@@ -15,6 +15,14 @@ Run the main file with arguments to test the connection nd retrieve all data.
 uv run ./src/amit_hvac_control/__main__.py --host=<internal_network_address> --username=<username> --password=<password>
 ```
 
+## TUI
+
+A [Textual](https://textual.textualize.io/) TUI is available for manually reading and setting values on a real device while testing. It lives in [scripts/tui.py](scripts/tui.py) and is not part of the published package.
+
+```bash
+uv run scripts/tui.py --host=<internal_network_address> --username=<username> --password=<password>
+```
+
 ## Build
 
 ```bash
