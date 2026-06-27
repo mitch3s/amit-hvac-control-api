@@ -43,7 +43,7 @@ class AmitHvacControlClient:
         try:
             await self.async_auth_check()
             return True
-        except AuthenticationException:
+        except InvalidCredentialsException:
             return False
 
 
@@ -63,7 +63,7 @@ class AmitHvacControlClient:
             if res.status == 401:
                 raise InvalidCredentialsException()
             return res.ok
-        except TimeoutError as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             raise HostNotReachableException(err)
 
 
