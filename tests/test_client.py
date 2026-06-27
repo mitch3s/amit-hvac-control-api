@@ -19,11 +19,15 @@ class FakeSession:
     def __init__(self, exc=None, response=None):
         self._exc = exc
         self._response = response
+        self.closed = False
 
     async def get(self, *args, **kwargs):
         if self._exc is not None:
             raise self._exc
         return self._response
+
+    async def close(self):
+        self.closed = True
 
 
 def _make_client(session):
@@ -63,6 +67,16 @@ class ClientAuthTests(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(HostNotReachableException):
             await client.async_is_valid_auth()
+
+    async def test_close_is_idempotent(self):
+        session = FakeSession(response=FakeResponse(200))
+        client = _make_client(session)
+
+        await client._close()
+        await client._close()
+
+        self.assertTrue(session.closed)
+        self.assertIsNone(client._session)
 
 
 if __name__ == "__main__":

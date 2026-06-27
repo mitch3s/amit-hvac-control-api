@@ -14,22 +14,27 @@ class AmitHvacControlClient:
     def __init__(self, config: Config):
         self.config = config
 
+        self._session: aiohttp.ClientSession | None = None
+        self.status_api: StatusApi | None = None
+        self.temperature_api: TemperatureApi | None = None
+        self.ventilation_api: VentilationApi | None = None
+
+    async def __aenter__(self):
         self._session = aiohttp.ClientSession(
-            base_url=config.url,
-            auth=aiohttp.BasicAuth(config.username, config.password),
-            
+            base_url=self.config.url,
+            auth=aiohttp.BasicAuth(self.config.username, self.config.password),
         )
         self.status_api = StatusApi(self._session)
         self.temperature_api = TemperatureApi(self._session)
         self.ventilation_api = VentilationApi(self._session)
-
-    async def __aenter__(self):
         return self
 
     async def __aexit__(self, *err):
         await self._close()
 
     async def _close(self):
+        if self._session is None:
+            return
         await self._session.close()
         self._session = None
 
