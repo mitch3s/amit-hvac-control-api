@@ -19,3 +19,6 @@ Issues = "https://github.com/mitch3s/amit-hvac-control/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[dependency-groups]
+dev = ["textual>=0.60"]
