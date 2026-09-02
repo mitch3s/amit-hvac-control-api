@@ -1,8 +1,11 @@
+import math
+from typing import Callable, Optional
+
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
 from amit_hvac_control.api.parsing import require_class, require_match
-from amit_hvac_control.api.utils import get_multipart_data
+from amit_hvac_control.api.utils import async_save_and_confirm, get_multipart_data
 from amit_hvac_control.models import HeatingMode, Season
 
 HEATING_URL = "/pages/page00/Vytapeni.hta"
@@ -40,19 +43,32 @@ class TemperatureApi:
         }
         return await self._async_save(post_data)
 
-    def async_set_temperature(self, temp_val: float):
+    async def async_set_temperature(
+        self,
+        temp_val: float,
+        on_retry: Optional[Callable[[int, Optional["TemperatureResult"]], None]] = None,
+    ):
         post_data = {
             "NUMEDIT_i1w4101s255t2j1k1g6a15.00m30.00": temp_val,
             "BTNSUB_g6": "",
         }
-        return self._async_save(post_data)
+        return await async_save_and_confirm(
+            save=lambda: self._async_save(post_data),
+            fetch=self.async_get_data,
+            is_applied=lambda data: math.isclose(data.set_temperature, temp_val, abs_tol=0.05),
+            on_retry=on_retry,
+        )
 
     def async_set_season(self, season: Season):
         save_val = season.get_save_value()
         post_data = {**save_val}
         return self._async_save(post_data)
 
-    def async_set_heating_mode(self, heating_mode: HeatingMode):
+    async def async_set_heating_mode(
+        self,
+        heating_mode: HeatingMode,
+        on_retry: Optional[Callable[[int, Optional["TemperatureResult"]], None]] = None,
+    ):
         save_val = heating_mode.get_button()
         post_data = {
             save_val: "",
@@ -60,7 +76,12 @@ class TemperatureApi:
             "SET_i1w4073s255t32j1k1g4": 1,
             "SET_i1w4073s255t32j1k1g5": 0,
         }
-        return self._async_save(post_data)
+        return await async_save_and_confirm(
+            save=lambda: self._async_save(post_data),
+            fetch=self.async_get_data,
+            is_applied=lambda data: data.heating_mode == heating_mode,
+            on_retry=on_retry,
+        )
 
     async def _async_save(self, post: dict):
         data = get_multipart_data(post)
