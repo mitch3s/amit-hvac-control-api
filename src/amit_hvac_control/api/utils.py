@@ -1,7 +1,10 @@
 import asyncio
+import logging
 from typing import Awaitable, Callable, Optional, TypeVar
 
 from aiohttp import MultipartWriter
+
+logger = logging.getLogger(__name__)
 
 
 def get_multipart_data(post: dict):
@@ -48,6 +51,12 @@ async def async_save_and_confirm(
             if is_applied(data):
                 return True
         if attempt < attempts:
+            logger.debug(
+                "Setting not applied yet after attempt %d/%d, retrying: %r",
+                attempt,
+                attempts,
+                data,
+            )
             if on_retry is not None:
                 on_retry(attempt, data)
             await asyncio.sleep(retry_delay_seconds)
