@@ -1,4 +1,6 @@
+import math
 import re
+from typing import Callable, Optional
 from aiohttp import ClientSession
 
 from amit_hvac_control.api.parsing import (
@@ -6,7 +8,7 @@ from amit_hvac_control.api.parsing import (
     require_match,
     require_selector,
 )
-from amit_hvac_control.api.utils import get_multipart_data
+from amit_hvac_control.api.utils import async_save_and_confirm, get_multipart_data
 from amit_hvac_control.models import VentilationMode
 from bs4 import BeautifulSoup
 
@@ -67,7 +69,11 @@ class VentilationApi:
             content = await response.read()
             return self._extract_data(content)
 
-    def async_set_ventilation(self, ventilation_mode: VentilationMode):
+    async def async_set_ventilation(
+        self,
+        ventilation_mode: VentilationMode,
+        on_retry: Optional[Callable[[int, Optional[VentilationResult]], None]] = None,
+    ):
         button_val = ventilation_mode.get_button()
 
         # POST request
@@ -80,21 +86,56 @@ class VentilationApi:
             button_val: "",
         }
 
-        return self._async_save(post_data)
+        return await async_save_and_confirm(
+            save=lambda: self._async_save(post_data),
+            fetch=self.async_get_data,
+            is_applied=lambda data: self._ventilation_mode_applied(data, ventilation_mode),
+            on_retry=on_retry,
+        )
 
-    def async_set_target_air_temperature(self, temp: float):
+    def _ventilation_mode_applied(self, data: VentilationResult, ventilation_mode: VentilationMode) -> bool:
+        # `ventilation_mode` (AWSCaseLabel1v) is the HMI's selected-mode label -
+        # it can flip as soon as the device accepts the POST, before the fan
+        # relay actually changes. `ventilation_speed` is derived from the
+        # AWSCaseLabelBit AND'd status bits, which reflects the real relay
+        # state, so it's the trustworthy signal for OFF/LOW/MEDIUM/HIGH. AUTO
+        # has no fixed speed to check against (it varies with CO2/demand), so
+        # for AUTO we fall back to the selection label.
+        if ventilation_mode == VentilationMode.AUTO:
+            return data.ventilation_mode == VentilationMode.AUTO
+        return data.ventilation_speed == ventilation_mode
+
+    async def async_set_target_air_temperature(
+        self,
+        temp: float,
+        on_retry: Optional[Callable[[int, Optional[VentilationResult]], None]] = None,
+    ):
         post_data = {
             "NUMEDIT_i1w4095s255t2j1k1g7a15.00m30.00": temp,
             "BTNSUB_g7": "Zapsat",
         }
-        return self._async_save(post_data)
+        return await async_save_and_confirm(
+            save=lambda: self._async_save(post_data),
+            fetch=self.async_get_data,
+            is_applied=lambda data: math.isclose(data.air_temp_setpoint, temp, abs_tol=0.05),
+            on_retry=on_retry,
+        )
 
-    def async_set_target_co2(self, co2: int):
+    async def async_set_target_co2(
+        self,
+        co2: int,
+        on_retry: Optional[Callable[[int, Optional[VentilationResult]], None]] = None,
+    ):
         post_data = {
             "NUMEDIT_i1w4087s255t2j1k1g8a100m1000": co2,
             "BTNSUB_g8": "Zapsat"
         }
-        return self._async_save(post_data)
+        return await async_save_and_confirm(
+            save=lambda: self._async_save(post_data),
+            fetch=self.async_get_data,
+            is_applied=lambda data: math.isclose(data.co2_setpoint, co2, abs_tol=0.5),
+            on_retry=on_retry,
+        )
 
     async def _async_save(self, post: dict):
         data = get_multipart_data(post)

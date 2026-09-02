@@ -153,6 +153,12 @@ class AmitTuiApp(App):
         except Exception as err:
             self._log(f"{description}: FAILED - {err}")
 
+    def _retry_logger(self, description: str):
+        def _on_retry(attempt: int, _data) -> None:
+            self._log(f"{description}: attempt {attempt} not applied yet, retrying...")
+
+        return _on_retry
+
     @on(Button.Pressed, "#status-refresh")
     async def handle_status_refresh(self) -> None:
         await self._refresh_status()
@@ -176,8 +182,12 @@ class AmitTuiApp(App):
         except ValueError:
             self._log(f"Set temperature: invalid value '{raw}'")
             return
+        description = f"Set temperature to {value}"
         await self._run_action(
-            f"Set temperature to {value}", self.client.temperature_api.async_set_temperature(value)
+            description,
+            self.client.temperature_api.async_set_temperature(
+                value, on_retry=self._retry_logger(description)
+            ),
         )
         await self._refresh_temperature()
 
@@ -198,8 +208,12 @@ class AmitTuiApp(App):
     @on(Button.Pressed, "#heating-mode-btn")
     async def handle_heating_mode(self) -> None:
         mode: HeatingMode = self.query_one("#heating-mode-select", Select).value
+        description = f"Set heating mode to {mode.name}"
         await self._run_action(
-            f"Set heating mode to {mode.name}", self.client.temperature_api.async_set_heating_mode(mode)
+            description,
+            self.client.temperature_api.async_set_heating_mode(
+                mode, on_retry=self._retry_logger(description)
+            ),
         )
         await self._refresh_temperature()
 
@@ -215,8 +229,12 @@ class AmitTuiApp(App):
     @on(Button.Pressed, "#ventilation-mode-btn")
     async def handle_ventilation_mode(self) -> None:
         mode: VentilationMode = self.query_one("#ventilation-mode-select", Select).value
+        description = f"Set ventilation mode to {mode.name}"
         await self._run_action(
-            f"Set ventilation mode to {mode.name}", self.client.ventilation_api.async_set_ventilation(mode)
+            description,
+            self.client.ventilation_api.async_set_ventilation(
+                mode, on_retry=self._retry_logger(description)
+            ),
         )
         await self._refresh_ventilation()
         await self._refresh_status()
@@ -229,9 +247,12 @@ class AmitTuiApp(App):
         except ValueError:
             self._log(f"Set target air temperature: invalid value '{raw}'")
             return
+        description = f"Set target air temperature to {value}"
         await self._run_action(
-            f"Set target air temperature to {value}",
-            self.client.ventilation_api.async_set_target_air_temperature(value),
+            description,
+            self.client.ventilation_api.async_set_target_air_temperature(
+                value, on_retry=self._retry_logger(description)
+            ),
         )
         await self._refresh_ventilation()
 
@@ -243,8 +264,12 @@ class AmitTuiApp(App):
         except ValueError:
             self._log(f"Set target CO2: invalid value '{raw}'")
             return
+        description = f"Set target CO2 to {value}"
         await self._run_action(
-            f"Set target CO2 to {value}", self.client.ventilation_api.async_set_target_co2(value)
+            description,
+            self.client.ventilation_api.async_set_target_co2(
+                value, on_retry=self._retry_logger(description)
+            ),
         )
         await self._refresh_ventilation()
 
