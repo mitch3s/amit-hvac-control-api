@@ -163,7 +163,7 @@ wheels = [
 
 [[package]]
 name = "amit-hvac-control"
-version = "0.4.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

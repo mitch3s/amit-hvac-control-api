@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-02
+
+### Added
+
+- `async_save_and_confirm` now emits a `DEBUG`-level log (via the standard `logging` module, logger `amit_hvac_control.api.utils`) each time an attempt isn't yet confirmed and it's about to retry. Previously this was only visible to consumers who passed their own `on_retry` callback (as the Textual TUI does); now it's also visible through normal Python logging configuration.
+
 ## [0.5.0] - 2026-09-02
 
 ### Fixed
